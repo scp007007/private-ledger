@@ -1,0 +1,13 @@
+*.apk
+*.zip
+*.keystore
+*.jks
+*.pem
+*.pfx
+*.log
+*.dpapi
+*.sqlite*
+*.db
+.env
+.env.*
+.venv/
