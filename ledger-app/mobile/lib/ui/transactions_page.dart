@@ -1,3 +1,4 @@
+import '../l10n/ledger_l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 
@@ -108,18 +109,18 @@ class _TransactionsPageState extends State<TransactionsPage> {
     return Column(
       children: [
         Padding(padding: const EdgeInsets.fromLTRB(16, 8, 16, 0), child: Row(children: [
-          Expanded(child: Text('点击流水可编辑金额、分类等', style: Theme.of(context).textTheme.bodySmall)),
+          Expanded(child: Text(tr(context, "点击流水可编辑金额、分类等"), style: Theme.of(context).textTheme.bodySmall)),
           TextButton.icon(onPressed: () => openNewTransaction(context, widget.controller),
-            icon: const Icon(Icons.add), label: const Text('记一笔')),
+            icon: const Icon(Icons.add), label: Text(tr(context, "记一笔"))),
         ])),
         if (widget.controller.lastError != null)
           MaterialBanner(
             leading: const Icon(Icons.cloud_off_outlined),
-            content: const Text('暂未同步，正在显示本机账本'),
+            content: Text(tr(context, "暂未同步，正在显示本机账本")),
             actions: [
               TextButton(
                 onPressed: () => widget.controller.syncNow(),
-                child: const Text('重试'),
+                child: Text(tr(context, "重试")),
               ),
             ],
           ),
@@ -129,7 +130,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
             controller: _search,
             onChanged: (_) => setState(() {}),
             decoration: InputDecoration(
-              hintText: '搜索商家、分类、标签或备注',
+              hintText: tr(context, "搜索商家、分类、标签或备注"),
               prefixIcon: const Icon(Icons.search_rounded),
               suffixIcon: query.isEmpty
                   ? null
@@ -143,15 +144,17 @@ class _TransactionsPageState extends State<TransactionsPage> {
         ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-          child: Row(
+          child: Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 8,
             children: [
               FilterChip(
-                label: const Text('待同步与冲突'),
+                label: Text(tr(context, "待同步与冲突")),
                 selected: _pendingOnly,
                 onSelected: (value) => setState(() => _pendingOnly = value),
               ),
-              const Spacer(),
-              Text('${rows.length} 笔流水',
+              Text(tr(context, "{0} 笔流水", [rows.length]),
                   style: TextStyle(color: colors.onSurfaceVariant, fontSize: 12)),
             ],
           ),
@@ -166,7 +169,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
-              '分类原始消费明细；金额未扣关联退款',
+              tr(context, "分类原始消费明细；金额未扣关联退款"),
               style: TextStyle(color: colors.onPrimaryContainer, fontSize: 12),
             ),
           ),
@@ -183,8 +186,8 @@ class _TransactionsPageState extends State<TransactionsPage> {
                         const SizedBox(height: 14),
                         Text(
                           widget.controller.rows.isEmpty
-                              ? '导入第一份账单，开始整理收支'
-                              : '没有符合条件的流水',
+                              ? tr(context, "导入第一份账单，开始整理收支")
+                              : tr(context, "没有符合条件的流水"),
                           style: TextStyle(color: colors.onSurfaceVariant),
                           textAlign: TextAlign.center,
                         ),
@@ -206,10 +209,10 @@ class _TransactionsPageState extends State<TransactionsPage> {
                           padding: const EdgeInsets.fromLTRB(2, 12, 2, 10),
                           child: Row(
                             children: [
-                              Text(_dayLabel(day),
+                              Text(_dayLabel(context, day),
                                   style: const TextStyle(fontWeight: FontWeight.w600)),
                               const Spacer(),
-                              Text('${group.length} 笔',
+                              Text(tr(context, "{0} 笔", [group.length]),
                                   style: TextStyle(color: colors.onSurfaceVariant, fontSize: 12)),
                             ],
                           ),
@@ -238,33 +241,36 @@ class _TransactionsPageState extends State<TransactionsPage> {
   }
 }
 
-String _dayLabel(DateTime day) {
+String _dayLabel(BuildContext context, DateTime day) {
   final now = DateTime.now();
   final today = DateTime(now.year, now.month, now.day);
-  if (day == today) return '今天 · ${day.month}月${day.day}日';
+  if (day == today) return tr(context, "今天 · {0}月{1}日", [day.month, day.day]);
   if (day == DateTime(now.year, now.month, now.day - 1)) {
-    return '昨天 · ${day.month}月${day.day}日';
+    return tr(context, "昨天 · {0}月{1}日", [day.month, day.day]);
+  }
+  if (isEnglish(context)) {
+    return day.year == now.year ? '${day.month}/${day.day}' : '${day.year}/${day.month}/${day.day}';
   }
   return '${day.year == now.year ? '' : '${day.year}年'}${day.month}月${day.day}日';
 }
 
-String _sourceLabel(String source) => switch (source) {
-  'alipay' => '支付宝',
-  'wechat' || 'weixin' || 'wechat_pay' => '微信',
-  'manual' => '手动记账',
-  'generic' || 'csv' => '导入账单',
-  _ => '其他来源',
+String _sourceLabel(BuildContext context, String source) => switch (source) {
+  'alipay' => tr(context, "支付宝"),
+  'wechat' || 'weixin' || 'wechat_pay' => tr(context, "微信"),
+  'manual' => tr(context, "手动记账"),
+  'generic' || 'csv' => tr(context, "导入账单"),
+  _ => tr(context, "其他来源"),
 };
 
-String _categoryLabel(String? category) =>
-    category == null || category.trim().isEmpty ? '未分类' : category;
+String _categoryLabel(BuildContext context, String? category) =>
+    category == null || category.trim().isEmpty ? tr(context, "未分类") : category;
 
-String _merchantLabel(LedgerTransaction transaction) =>
+String _merchantLabel(BuildContext context, LedgerTransaction transaction) =>
     transaction.merchant.isNotEmpty
         ? transaction.merchant
         : transaction.description.isNotEmpty
         ? transaction.description
-        : '未命名流水';
+        : tr(context, "未命名流水");
 
 IconData _transactionIcon(LedgerTransaction transaction) {
   if (transaction.kind == 'refund') return Icons.undo_rounded;
@@ -326,7 +332,7 @@ class TransactionRowTile extends StatelessWidget {
                   LayoutBuilder(builder: (context, constraints) => Row(
                     children: [
                       Expanded(
-                        child: Text(_merchantLabel(transaction),
+                        child: Text(_merchantLabel(context, transaction),
                           maxLines: 1, overflow: TextOverflow.ellipsis,
                           style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
                       ),
@@ -343,13 +349,13 @@ class TransactionRowTile extends StatelessWidget {
                     ],
                   )),
                   const SizedBox(height: 5),
-                  Text('${_categoryLabel(transaction.category)} · ${_sourceLabel(transaction.source)} · $time',
+                  Text('${_categoryLabel(context, transaction.category)} · ${_sourceLabel(context, transaction.source)} · $time',
                     maxLines: 1, overflow: TextOverflow.ellipsis,
                     style: TextStyle(color: colors.onSurfaceVariant, fontSize: 11)),
                   if (transaction.tags.isNotEmpty || transaction.kind == 'refund' || transaction.kind == 'transfer' || transaction.kind == 'red_packet') ...[
                     const SizedBox(height: 4),
                     Text([
-                      if (transaction.kind == 'refund' || transaction.kind == 'transfer' || transaction.kind == 'red_packet') _kindLabel(transaction.kind),
+                      if (transaction.kind == 'refund' || transaction.kind == 'transfer' || transaction.kind == 'red_packet') _kindLabel(context, transaction.kind),
                       ...transaction.tags.take(2).map((tag) => '#$tag'),
                     ].join(' · '),
                     maxLines: 1, overflow: TextOverflow.ellipsis,
@@ -360,9 +366,9 @@ class TransactionRowTile extends StatelessWidget {
                     Wrap(
                       spacing: 6, runSpacing: 4,
                       children: [
-                        if (transaction.excluded) _StatusLabel(text: '不计入报表', color: colors.onSurfaceVariant, background: colors.surfaceContainerHighest),
-                        if (row.hasConflict) _StatusLabel(text: '同步冲突', color: colors.error, background: colors.errorContainer),
-                        if (row.pendingCount > 0 && !row.hasConflict) _StatusLabel(text: '待同步', color: colors.primary, background: colors.primaryContainer),
+                        if (transaction.excluded) _StatusLabel(text: tr(context, "不计入报表"), color: colors.onSurfaceVariant, background: colors.surfaceContainerHighest),
+                        if (row.hasConflict) _StatusLabel(text: tr(context, "同步冲突"), color: colors.error, background: colors.errorContainer),
+                        if (row.pendingCount > 0 && !row.hasConflict) _StatusLabel(text: tr(context, "待同步"), color: colors.primary, background: colors.primaryContainer),
                       ],
                     ),
                   ],
@@ -390,12 +396,12 @@ class _StatusLabel extends StatelessWidget {
   );
 }
 
-String _kindLabel(String kind) => switch (kind) {
-  'payment' => '消费',
-  'refund' => '退款',
-  'transfer' => '转账',
-  'red_packet' => '红包',
-  _ => '其他',
+String _kindLabel(BuildContext context, String kind) => switch (kind) {
+  'payment' => tr(context, "消费"),
+  'refund' => tr(context, "退款"),
+  'transfer' => tr(context, "转账"),
+  'red_packet' => tr(context, "红包"),
+  _ => tr(context, "其他"),
 };
 
 class TransactionEditor extends StatefulWidget {
@@ -495,8 +501,9 @@ class _TransactionEditorState extends State<TransactionEditor> {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text(error is FormatException ? error.message :
-            error is StateError ? error.message : '保存失败，请检查本机空间和账本连接后重试。')));
+        ).showSnackBar(SnackBar(content: Text(error is FormatException || error is StateError
+            ? localizedProblem(context, error)
+            : tr(context, "保存失败，请检查本机空间和账本连接后重试。"))));
       }
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -512,26 +519,24 @@ class _TransactionEditorState extends State<TransactionEditor> {
     final choice = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('解决同步冲突'),
+        title: Text(tr(context, "解决同步冲突")),
         content: SingleChildScrollView(
           child: Text(
-            '本机：${local.category ?? '未分类'} / ${local.tags.join('、')} / ${local.note}\n\n'
-            '服务器：${remote.category ?? '未分类'} / ${remote.tags.join('、')} / ${remote.note}\n\n'
-            '选择“保留本机”会基于服务器新版本重新提交本机字段。',
+            tr(context, "本机：{0} / {1} / {2}\n\n服务器：{3} / {4} / {5}\n\n选择“保留本机”会基于服务器新版本重新提交本机字段。", [local.category ?? tr(context, "未分类"), local.tags.join('、'), local.note, remote.category ?? tr(context, "未分类"), remote.tags.join('、'), remote.note]),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('稍后处理'),
+            child: Text(tr(context, "稍后处理")),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('采用服务器'),
+            child: Text(tr(context, "采用服务器")),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('保留本机'),
+            child: Text(tr(context, "保留本机")),
           ),
         ],
       ),
@@ -600,7 +605,7 @@ class _TransactionEditorState extends State<TransactionEditor> {
         .map((row) => row.transaction)
         .firstOrNull;
     return Scaffold(
-      appBar: AppBar(title: Text(widget.isNew ? '记一笔' : '流水详情')),
+      appBar: AppBar(title: Text(widget.isNew ? tr(context, "记一笔") : tr(context, "流水详情"))),
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 14),
@@ -612,11 +617,11 @@ class _TransactionEditorState extends State<TransactionEditor> {
                 height: 50,
                 child: FilledButton(
                   onPressed: _saving || widget.row.hasConflict ? null : _save,
-                  child: Text(_saving ? '保存中…' : widget.isNew ? '保存账单' : '保存修改'),
+                  child: Text(_saving ? tr(context, "保存中…") : widget.isNew ? tr(context, "保存账单") : tr(context, "保存修改")),
                 ),
               ),
               const SizedBox(height: 8),
-              Text(widget.controller.autoSync ? '修改会保存在本机，联网后自动同步' : '自动同步已关闭；保存后请手动同步',
+              Text(widget.controller.autoSync ? tr(context, "修改会保存在本机，联网后自动同步") : tr(context, "自动同步已关闭；保存后请手动同步"),
                   style: TextStyle(color: colors.onSurfaceVariant, fontSize: 11)),
             ],
           ),
@@ -626,24 +631,24 @@ class _TransactionEditorState extends State<TransactionEditor> {
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
         children: [
           Card(child: Padding(padding: const EdgeInsets.all(16), child: Column(children: [
-            SegmentedButton<String>(segments: const [
-              ButtonSegment(value: 'expense', label: Text('支出')),
-              ButtonSegment(value: 'income', label: Text('收入')),
+            SegmentedButton<String>(segments: [
+              ButtonSegment(value: 'expense', label: Text(tr(context, "支出"))),
+              ButtonSegment(value: 'income', label: Text(tr(context, "收入"))),
             ], selected: {_direction}, onSelectionChanged: transaction.kind == 'refund' ? null :
                 (value) => setState(() => _direction = value.single)),
             const SizedBox(height: 14),
             TextField(controller: _amount, keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(labelText: '金额（元）', prefixIcon: Icon(Icons.payments_outlined))),
+              decoration: InputDecoration(labelText: tr(context, "金额（元）"), prefixIcon: Icon(Icons.payments_outlined))),
             const SizedBox(height: 14),
             TextField(controller: _merchant, maxLength: 500,
-              decoration: const InputDecoration(labelText: '商户／收付款对象')),
+              decoration: InputDecoration(labelText: tr(context, "商户／收付款对象"))),
             TextField(controller: _description, maxLength: 2000,
-              decoration: const InputDecoration(labelText: '账单说明')),
-            ListTile(contentPadding: EdgeInsets.zero, title: const Text('交易时间（北京时间）'),
+              decoration: InputDecoration(labelText: tr(context, "账单说明"))),
+            ListTile(contentPadding: EdgeInsets.zero, title: Text(tr(context, "交易时间（北京时间）")),
               subtitle: Text(formatDate(_date)), trailing: const Icon(Icons.edit_calendar), onTap: _pickDate),
           ]))),
           if (!widget.isNew) ...[
-          const Padding(padding: EdgeInsets.only(top: 16), child: Text('保存前的流水信息')),
+          Padding(padding: EdgeInsets.only(top: 16), child: Text(tr(context, "保存前的流水信息"))),
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 22),
             child: Column(
@@ -658,7 +663,7 @@ class _TransactionEditorState extends State<TransactionEditor> {
                   child: Icon(_transactionIcon(transaction), color: colors.primary, size: 27),
                 ),
                 const SizedBox(height: 14),
-                Text(_merchantLabel(transaction),
+                Text(_merchantLabel(context, transaction),
                     textAlign: TextAlign.center,
                     style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 8),
@@ -674,8 +679,8 @@ class _TransactionEditorState extends State<TransactionEditor> {
                   spacing: 8,
                   runSpacing: 6,
                   children: [
-                    _StatusLabel(text: _sourceLabel(transaction.source), color: colors.primary, background: colors.primaryContainer),
-                    _StatusLabel(text: _kindLabel(transaction.kind), color: colors.onSurfaceVariant, background: colors.surfaceContainerHighest),
+                    _StatusLabel(text: _sourceLabel(context, transaction.source), color: colors.primary, background: colors.primaryContainer),
+                    _StatusLabel(text: _kindLabel(context, transaction.kind), color: colors.onSurfaceVariant, background: colors.surfaceContainerHighest),
                   ],
                 ),
               ],
@@ -687,10 +692,10 @@ class _TransactionEditorState extends State<TransactionEditor> {
               padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
-                  _DetailLine(label: '交易时间', value: formatDate(transaction.ledgerDateTime)),
+                  _DetailLine(label: tr(context, "交易时间"), value: formatDate(transaction.ledgerDateTime)),
                   if (transaction.description.isNotEmpty) ...[
                     const SizedBox(height: 12),
-                    _DetailLine(label: '账单说明', value: transaction.description),
+                    _DetailLine(label: tr(context, "账单说明"), value: transaction.description),
                   ],
                 ],
               ),
@@ -702,11 +707,11 @@ class _TransactionEditorState extends State<TransactionEditor> {
             FilledButton.tonalIcon(
               onPressed: _resolve,
               icon: const Icon(Icons.warning_amber),
-              label: const Text('先解决同步冲突'),
+              label: Text(tr(context, "先解决同步冲突")),
             ),
           ],
           const SizedBox(height: 24),
-          const Text('整理这笔流水', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+          Text(tr(context, "整理这笔流水"), style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
           const SizedBox(height: 12),
           Card(
             margin: EdgeInsets.zero,
@@ -719,9 +724,9 @@ class _TransactionEditorState extends State<TransactionEditor> {
                     controller: _category,
                     maxLength: 200,
                     onChanged: (_) => setState(() {}),
-                    decoration: const InputDecoration(
-                      labelText: '分类',
-                      hintText: '例如：餐饮、交通、日用品',
+                    decoration: InputDecoration(
+                      labelText: tr(context, "分类"),
+                      hintText: tr(context, "例如：餐饮、交通、日用品"),
                       prefixIcon: Icon(Icons.category_outlined),
                     ),
                   ),
@@ -739,10 +744,10 @@ class _TransactionEditorState extends State<TransactionEditor> {
                   const SizedBox(height: 18),
                   TextField(
                     controller: _tags,
-                    decoration: const InputDecoration(
-                      labelText: '标签',
-                      hintText: '工作午餐，出差',
-                      helperText: '用逗号分隔，便于以后查找',
+                    decoration: InputDecoration(
+                      labelText: tr(context, "标签"),
+                      hintText: tr(context, "工作午餐，出差"),
+                      helperText: tr(context, "用逗号分隔，便于以后查找"),
                       prefixIcon: Icon(Icons.sell_outlined),
                     ),
                   ),
@@ -752,9 +757,9 @@ class _TransactionEditorState extends State<TransactionEditor> {
                     maxLength: 4000,
                     minLines: 2,
                     maxLines: 4,
-                    decoration: const InputDecoration(
-                      labelText: '备注',
-                      hintText: '记录具体商品或用途…',
+                    decoration: InputDecoration(
+                      labelText: tr(context, "备注"),
+                      hintText: tr(context, "记录具体商品或用途…"),
                       alignLabelWithHint: true,
                     ),
                   ),
@@ -770,8 +775,8 @@ class _TransactionEditorState extends State<TransactionEditor> {
               children: [
                 SwitchListTile(
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
-                  title: const Text('不计入收支报表', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-                  subtitle: const Text('流水仍然保留，可随时搜索', style: TextStyle(fontSize: 12)),
+                  title: Text(tr(context, "不计入收支报表"), style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                  subtitle: Text(tr(context, "流水仍然保留，可随时搜索"), style: TextStyle(fontSize: 12)),
                   value: _excluded,
                   onChanged: (value) => setState(() => _excluded = value),
                 ),
@@ -779,13 +784,13 @@ class _TransactionEditorState extends State<TransactionEditor> {
                   const Divider(height: 1, indent: 16, endIndent: 16),
                   ListTile(
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                    title: const Text('关联原消费', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                    title: Text(tr(context, "关联原消费"), style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
                     subtitle: Padding(
                       padding: const EdgeInsets.only(top: 5),
                       child: Text(
                         linked == null
-                            ? (_refundOfId == null ? '尚未关联，月报会列为待确认退款' : '已关联的消费暂不在本机')
-                            : '${_merchantLabel(linked)} · ${formatMoney(linked.amountCents)}',
+                            ? (_refundOfId == null ? tr(context, "尚未关联，月报会列为待确认退款") : tr(context, "已关联的消费暂不在本机"))
+                            : '${_merchantLabel(context, linked)} · ${formatMoney(linked.amountCents)}',
                         style: const TextStyle(fontSize: 12),
                       ),
                     ),
@@ -851,17 +856,17 @@ class _RefundPickerState extends State<_RefundPicker> {
           height: MediaQuery.sizeOf(context).height * 0.75,
           child: Column(
             children: [
-              const Text('关联原消费',
+              Text(tr(context, "关联原消费"),
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
               const SizedBox(height: 6),
-              const Text('退款将抵扣原消费所在月份的支出',
+              Text(tr(context, "退款将抵扣原消费所在月份的支出"),
                   style: TextStyle(fontSize: 12)),
               Padding(
                 padding: const EdgeInsets.all(16),
                 child: TextField(
                   autofocus: true,
-                  decoration: const InputDecoration(
-                    labelText: '搜索原消费',
+                  decoration: InputDecoration(
+                    labelText: tr(context, "搜索原消费"),
                     prefixIcon: Icon(Icons.search),
                     border: OutlineInputBorder(),
                   ),
@@ -869,7 +874,7 @@ class _RefundPickerState extends State<_RefundPicker> {
                 ),
               ),
               ListTile(
-                title: const Text('取消关联'),
+                title: Text(tr(context, "取消关联")),
                 leading: const Icon(Icons.link_off),
                 onTap: () => Navigator.pop(context, ''),
               ),

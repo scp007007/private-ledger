@@ -1,3 +1,4 @@
+import '../l10n/ledger_l10n.dart';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -6,6 +7,13 @@ import '../ledger_controller.dart';
 import '../model/ledger_transaction.dart';
 import '../model/report_breakdown.dart';
 import 'motion.dart';
+
+String reportCategoryLabel(BuildContext context, String category) =>
+    category == '未分类' ? tr(context, '未分类') : category;
+
+String _sliceLabel(BuildContext context, CategorySlice slice) => slice.isGroup
+    ? tr(context, '其余 {0} 类', [slice.categories.length])
+    : reportCategoryLabel(context, slice.label);
 
 class MonthSelector extends StatelessWidget {
   const MonthSelector({super.key, required this.year, required this.month, required this.onChange});
@@ -16,9 +24,9 @@ class MonthSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Row(
     children: [
-      Expanded(child: Text('$year年$month月', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 17, fontWeight: FontWeight.w600))),
-      IconButton(tooltip: '上个月', onPressed: year == 1 && month == 1 ? null : () => onChange(DateTime(year, month - 1)), icon: const Icon(Icons.chevron_left)),
-      IconButton(tooltip: '下个月', onPressed: year == 9999 && month == 12 ? null : () => onChange(DateTime(year, month + 1)), icon: const Icon(Icons.chevron_right)),
+      Expanded(child: Text(tr(context, "{0}年{1}月", [year, month]), style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 17, fontWeight: FontWeight.w600))),
+      IconButton(tooltip: tr(context, "上个月"), onPressed: year == 1 && month == 1 ? null : () => onChange(DateTime(year, month - 1)), icon: const Icon(Icons.chevron_left)),
+      IconButton(tooltip: tr(context, "下个月"), onPressed: year == 9999 && month == 12 ? null : () => onChange(DateTime(year, month + 1)), icon: const Icon(Icons.chevron_right)),
     ],
   );
 }
@@ -33,8 +41,8 @@ class ReportStatus extends StatelessWidget {
     final pending = controller.pendingCount;
     final failed = controller.lastError != null;
     final details = <String>[
-      if (pending > 0) '$pending 项修改待同步，已计入本机统计',
-      if (failed) '账单同步未完成，本机统计仍可使用',
+      if (pending > 0) tr(context, "{0} 项修改待同步，已计入本机统计", [pending]),
+      if (failed) tr(context, "账单同步未完成，本机统计仍可使用"),
     ];
     return Padding(
       padding: const EdgeInsets.only(top: 2, bottom: 12),
@@ -43,8 +51,8 @@ class ReportStatus extends StatelessWidget {
           Icon(controller.syncing ? Icons.sync_rounded : pending > 0 || failed ? Icons.cloud_off_outlined : Icons.cloud_done_outlined, size: 14, color: colors.onSurfaceVariant),
           const SizedBox(width: 6),
           Expanded(child: Text([
-            '按本机流水实时统计',
-            if (controller.syncing) '正在同步账单',
+            tr(context, "按本机流水实时统计"),
+            if (controller.syncing) tr(context, "正在同步账单"),
           ].join(' · '), style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 11, color: colors.onSurfaceVariant))),
         ]),
         if (details.isNotEmpty) ...[
@@ -74,16 +82,16 @@ class ConsumptionSummary extends StatelessWidget {
     return Card(color: const Color(0xFF29466F), child: Padding(
       padding: const EdgeInsets.all(22),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(yearly ? '全年实际消费' : '本月实际消费', style: theme.textTheme.bodySmall?.copyWith(fontSize: 12, color: Colors.white.withValues(alpha: .82), letterSpacing: .3)),
+        Text(yearly ? tr(context, "全年实际消费") : tr(context, "本月实际消费"), style: theme.textTheme.bodySmall?.copyWith(fontSize: 12, color: Colors.white.withValues(alpha: .82), letterSpacing: .3)),
         const SizedBox(height: 6),
         FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerLeft, child: Text(formatMoney(expense), style: theme.textTheme.headlineLarge?.copyWith(fontSize: 38, height: 1.25, color: Colors.white, fontWeight: FontWeight.w600, letterSpacing: -1.1, fontFeatures: const [FontFeature.tabularFigures()]))),
         const SizedBox(height: 17),
         Divider(height: 1, color: Colors.white.withValues(alpha: .18)),
         const SizedBox(height: 13),
         Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Expanded(child: _SummaryAmount(label: '收入', cents: income)),
+          Expanded(child: _SummaryAmount(label: tr(context, "收入"), cents: income)),
           const SizedBox(width: 12),
-          Expanded(child: _SummaryAmount(label: '收支差额', cents: income - expense)),
+          Expanded(child: _SummaryAmount(label: tr(context, "收支差额"), cents: income - expense)),
         ]),
       ]),
     ));
@@ -118,9 +126,9 @@ class ExpenseBreakdown extends StatelessWidget {
       context: context,
       showDragHandle: true,
       builder: (context) => SafeArea(child: ListView(shrinkWrap: true, children: [
-        Padding(padding: const EdgeInsets.fromLTRB(20, 0, 20, 12), child: Text(slice.label, style: Theme.of(context).textTheme.titleLarge)),
+        Padding(padding: const EdgeInsets.fromLTRB(20, 0, 20, 12), child: Text(_sliceLabel(context, slice), style: Theme.of(context).textTheme.titleLarge)),
         for (final category in slice.categories)
-          ListTile(title: Text(category.name), trailing: Text(formatMoney(category.cents)), onTap: () => Navigator.pop(context, category.name)),
+          ListTile(title: Text(reportCategoryLabel(context, category.name)), trailing: Text(formatMoney(category.cents)), onTap: () => Navigator.pop(context, category.name)),
       ])),
     );
     if (name != null) onCategory(name);
@@ -135,16 +143,16 @@ class ExpenseBreakdown extends StatelessWidget {
     return Card(child: Padding(
       padding: const EdgeInsets.all(18),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [Expanded(child: Text('钱都花在哪了', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600))), Text('消费占比', style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant))]),
+        Row(children: [Expanded(child: Text(tr(context, "钱都花在哪了"), style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600))), Text(tr(context, "消费占比"), style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant))]),
         const SizedBox(height: 10),
         if (total == 0)
-          Padding(padding: const EdgeInsets.symmetric(vertical: 24), child: Center(child: Column(children: [Icon(Icons.donut_large, size: 48, color: theme.colorScheme.outlineVariant), const SizedBox(height: 12), const Text('这个期间还没有计入统计的消费')]))),
+          Padding(padding: const EdgeInsets.symmetric(vertical: 24), child: Center(child: Column(children: [Icon(Icons.donut_large, size: 48, color: theme.colorScheme.outlineVariant), const SizedBox(height: 12), Text(tr(context, "这个期间还没有计入统计的消费"))]))),
         if (total > 0) LayoutBuilder(builder: (context, constraints) {
           final stacked = constraints.maxWidth < 240 || MediaQuery.textScalerOf(context).scale(14) > 19;
           final diameter = stacked ? 154.0 : (constraints.maxWidth * .46).clamp(116.0, 164.0).toDouble();
           final center = diameter / 2;
           final chart = SizedBox(width: diameter, height: diameter, child: Semantics(
-            label: '消费占比。${slices.map((s) => '${s.label} ${(100 * s.cents / total).toStringAsFixed(1)}%').join('，')}。可点击分类查看流水。',
+            label: tr(context, "消费占比。{0}。可点击分类查看流水。", [slices.map((s) => '${_sliceLabel(context, s)} ${(100 * s.cents / total).toStringAsFixed(1)}%').join(isEnglish(context) ? ', ' : '，')]),
             child: GestureDetector(
               onTapUp: (detail) {
                 final point = detail.localPosition - Offset(center, center);
@@ -165,7 +173,7 @@ class ExpenseBreakdown extends StatelessWidget {
                   builder: (context, progress, _) => CustomPaint(painter: _DonutPainter(slices, _colors, progress: progress)),
                 ))),
                 Padding(padding: EdgeInsets.all(diameter * .21), child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  Flexible(child: Text(categories.first.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant))),
+                  Flexible(child: Text(reportCategoryLabel(context, categories.first.name), maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant))),
                   const SizedBox(height: 4),
                   Flexible(child: FittedBox(fit: BoxFit.scaleDown, child: Text('${(categories.first.cents / total * 100).toStringAsFixed(1)}%', style: theme.textTheme.titleLarge?.copyWith(fontSize: 24, fontWeight: FontWeight.w600, fontFeatures: const [FontFeature.tabularFigures()])))),
                 ])),
@@ -181,7 +189,7 @@ class ExpenseBreakdown extends StatelessWidget {
                   Container(width: 8, height: 8, decoration: BoxDecoration(color: _colors[i], shape: BoxShape.circle)),
                   const SizedBox(width: 7),
                   Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(slices[i].label, style: theme.textTheme.bodySmall?.copyWith(fontSize: 12, fontWeight: FontWeight.w500)),
+                    Text(_sliceLabel(context, slices[i]), style: theme.textTheme.bodySmall?.copyWith(fontSize: 12, fontWeight: FontWeight.w500)),
                     Text(formatMoney(slices[i].cents), style: theme.textTheme.bodySmall?.copyWith(fontSize: 11, color: theme.colorScheme.onSurfaceVariant, fontFeatures: const [FontFeature.tabularFigures()])),
                   ])),
                   const SizedBox(width: 5),
@@ -203,8 +211,8 @@ class ExpenseBreakdown extends StatelessWidget {
           expansionAnimationStyle: AnimationStyle(duration: ledgerMotionDuration(context, milliseconds: 220), curve: Curves.easeOutCubic),
           tilePadding: EdgeInsets.zero,
           childrenPadding: const EdgeInsets.only(bottom: 6),
-          title: const Text('按实际消费统计 · 查看口径', style: TextStyle(fontSize: 12)),
-          children: const [Text('消费占比按已扣关联退款后的金额计算，退款冲减原消费月份。未关联退款等待确认；红包和转账默认排除，人工调整以当前设置为准。收支差额不是账户余额。', style: TextStyle(fontSize: 12))],
+          title: Text(tr(context, "按实际消费统计 · 查看口径"), style: TextStyle(fontSize: 12)),
+          children: [Text(tr(context, "消费占比按已扣关联退款后的金额计算，退款冲减原消费月份。未关联退款等待确认；红包和转账默认排除，人工调整以当前设置为准。收支差额不是账户余额。"), style: TextStyle(fontSize: 12))],
         )),
       ]),
     ));
@@ -266,10 +274,10 @@ class RefundNotice extends StatelessWidget {
     if (count == 0 && over == 0) return const SizedBox.shrink();
     return Padding(padding: const EdgeInsets.only(top: 12), child: Card(child: ListTile(
       leading: Icon(Icons.info_outline, color: Theme.of(context).colorScheme.primary),
-      title: Text(count > 0 ? '$count 笔退款待关联' : '退款金额需要核对'),
+      title: Text(count > 0 ? tr(context, "{0} 笔退款待关联", [count]) : tr(context, "退款金额需要核对")),
       subtitle: Text([
-        if (count > 0) '${formatMoney(reportCents(report, 'unlinked_refunds_cents'))} 暂未抵扣消费，请在退款流水中关联原消费。',
-        if (over > 0) '关联退款超过原消费 ${formatMoney(over)}，超出部分未抵扣。',
+        if (count > 0) tr(context, "{0} 暂未抵扣消费，请在退款流水中关联原消费。", [formatMoney(reportCents(report, 'unlinked_refunds_cents'))]),
+        if (over > 0) tr(context, "关联退款超过原消费 {0}，超出部分未抵扣。", [formatMoney(over)]),
       ].join('\n')),
     )));
   }

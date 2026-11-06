@@ -45,6 +45,7 @@ class LedgerController extends ChangeNotifier with WidgetsBindingObserver {
   bool _foreground = true;
   bool excludeRedPackets = true;
   String appearance = 'light';
+  String language = 'zh';
   String? lastError;
   DateTime? lastSyncAt;
   int pendingCount = 0;
@@ -86,6 +87,9 @@ class LedgerController extends ChangeNotifier with WidgetsBindingObserver {
     if (const ['light', 'dark', 'system'].contains(appearance)) {
       controller.appearance = appearance!;
     }
+    if (await controller._store.getMeta('language') == 'en') {
+      controller.language = 'en';
+    }
     final token = await storage.read(key: 'server_token');
     controller.hasToken = token != null && token.isNotEmpty;
     if (controller.baseUrl != null && controller.hasToken) {
@@ -125,6 +129,15 @@ class LedgerController extends ChangeNotifier with WidgetsBindingObserver {
     }
     await _store.setMeta('appearance', value);
     appearance = value;
+    notifyListeners();
+  }
+
+  Future<void> setLanguage(String value) async {
+    if (value != 'zh' && value != 'en') {
+      throw ArgumentError.value(value, 'value', 'Unsupported language');
+    }
+    await _store.setMeta('language', value);
+    language = value;
     notifyListeners();
   }
 

@@ -1,3 +1,4 @@
+import '../l10n/ledger_l10n.dart';
 import 'package:flutter/material.dart';
 
 import '../ledger_controller.dart';
@@ -28,7 +29,7 @@ class _RulesPageState extends State<RulesPage> {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('暂时无法读取服务器规则，显示本地缓存：$error')));
+        ).showSnackBar(SnackBar(content: Text(tr(context, "暂时无法读取服务器规则，显示本地缓存：{0}", [localizedProblem(context, error)]))));
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -39,16 +40,16 @@ class _RulesPageState extends State<RulesPage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('删除规则？'),
-        content: const Text('已经导入的流水不会改变。'),
+        title: Text(tr(context, "删除规则？")),
+        content: Text(tr(context, "已经导入的流水不会改变。")),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消'),
+            child: Text(tr(context, "取消")),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('删除'),
+            child: Text(tr(context, "删除")),
           ),
         ],
       ),
@@ -61,7 +62,7 @@ class _RulesPageState extends State<RulesPage> {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('删除失败：$error')));
+        ).showSnackBar(SnackBar(content: Text(tr(context, "删除失败：{0}", [localizedProblem(context, error)]))));
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -72,33 +73,33 @@ class _RulesPageState extends State<RulesPage> {
   Widget build(BuildContext context) {
     final rules = widget.controller.rules;
     return Scaffold(
-      appBar: AppBar(title: const Text('自动分类规则')),
+      appBar: AppBar(title: Text(tr(context, "自动分类规则"))),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          const Text('规则会在以后导入账单时自动运行；人工修改始终优先。新建规则不会追改已经导入的流水。'),
+          Text(tr(context, "规则会在以后导入账单时自动运行；人工修改始终优先。新建规则不会追改已经导入的流水。")),
           const SizedBox(height: 12),
           if (_busy) const LinearProgressIndicator(),
           if (rules.isEmpty)
-            const Padding(
+            Padding(
               padding: EdgeInsets.all(20),
-              child: Text('还没有规则。可以用商户或描述关键词快速归类。'),
+              child: Text(tr(context, "还没有规则。可以用商户或描述关键词快速归类。")),
             ),
           for (final rule in rules)
             Card(
               child: ListTile(
                 title: Text(
-                  _describeConditions(
+                  _describeConditions(context,
                     (rule['conditions'] as Map<String, dynamic>?) ?? const {},
                   ),
                 ),
                 subtitle: Text(
-                  _describeActions(
+                  _describeActions(context,
                     (rule['actions'] as Map<String, dynamic>?) ?? const {},
                   ),
                 ),
                 trailing: IconButton(
-                  tooltip: '删除规则',
+                  tooltip: tr(context, "删除规则"),
                   icon: const Icon(Icons.delete_outline),
                   onPressed: _busy ? null : () => _delete(rule),
                 ),
@@ -115,34 +116,34 @@ class _RulesPageState extends State<RulesPage> {
                 ),
               ),
         icon: const Icon(Icons.add),
-        label: const Text('新建规则'),
+        label: Text(tr(context, "新建规则")),
       ),
     );
   }
 }
 
-String _describeConditions(Map<String, dynamic> conditions) {
+String _describeConditions(BuildContext context, Map<String, dynamic> conditions) {
   final parts = <String>[];
   if (conditions['merchant_contains'] != null) {
-    parts.add('商户含「${conditions['merchant_contains']}」');
+    parts.add(tr(context, "商户含「{0}」", [conditions['merchant_contains']]));
   }
   if (conditions['description_contains'] != null) {
-    parts.add('描述含「${conditions['description_contains']}」');
+    parts.add(tr(context, "描述含「{0}」", [conditions['description_contains']]));
   }
   for (final key in ['source', 'kind', 'direction']) {
     if (conditions[key] != null) parts.add('$key = ${conditions[key]}');
   }
-  return parts.join(' 且 ');
+  return parts.join(tr(context, " 且 "));
 }
 
-String _describeActions(Map<String, dynamic> actions) {
+String _describeActions(BuildContext context, Map<String, dynamic> actions) {
   final parts = <String>[];
-  if (actions.containsKey('category')) parts.add('分类：${actions['category']}');
+  if (actions.containsKey('category')) parts.add(tr(context, "分类：{0}", [actions['category']]));
   if (actions.containsKey('tags')) {
-    parts.add('标签：${(actions['tags'] as List<dynamic>).join('、')}');
+    parts.add(tr(context, "标签：{0}", [(actions['tags'] as List<dynamic>).join('、')]));
   }
   if (actions.containsKey('excluded')) {
-    parts.add(actions['excluded'] == true ? '排除统计' : '计入统计');
+    parts.add(actions['excluded'] == true ? tr(context, "排除统计") : tr(context, "计入统计"));
   }
   return parts.join(' · ');
 }
@@ -204,7 +205,7 @@ class _NewRulePageState extends State<NewRulePage> {
     if (conditions.isEmpty || actions.isEmpty) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('至少填写一个匹配条件和一个处理动作。')));
+      ).showSnackBar(SnackBar(content: Text(tr(context, "至少填写一个匹配条件和一个处理动作。"))));
       return;
     }
     setState(() => _busy = true);
@@ -215,7 +216,7 @@ class _NewRulePageState extends State<NewRulePage> {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('保存规则失败：$error')));
+        ).showSnackBar(SnackBar(content: Text(tr(context, "保存规则失败：{0}", [localizedProblem(context, error)]))));
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -225,75 +226,75 @@ class _NewRulePageState extends State<NewRulePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('新建规则')),
+      appBar: AppBar(title: Text(tr(context, "新建规则"))),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Text('匹配条件', style: Theme.of(context).textTheme.titleMedium),
+          Text(tr(context, "匹配条件"), style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 10),
           TextField(
             controller: _merchant,
-            decoration: const InputDecoration(
-              labelText: '商户名称包含',
+            decoration: InputDecoration(
+              labelText: tr(context, "商户名称包含"),
               border: OutlineInputBorder(),
             ),
           ),
           const SizedBox(height: 10),
           TextField(
             controller: _description,
-            decoration: const InputDecoration(
-              labelText: '交易描述包含',
+            decoration: InputDecoration(
+              labelText: tr(context, "交易描述包含"),
               border: OutlineInputBorder(),
             ),
           ),
           const SizedBox(height: 10),
-          _dropdown('来源', _source, const {
-            'wechat': '微信',
-            'alipay': '支付宝',
-            'generic': '标准 CSV',
+          _dropdown(tr(context, "来源"), _source, {
+            'wechat': tr(context, "微信"),
+            'alipay': tr(context, "支付宝"),
+            'generic': tr(context, "标准 CSV"),
           }, (value) => setState(() => _source = value)),
           const SizedBox(height: 10),
-          _dropdown('交易性质', _kind, const {
-            'payment': '消费',
-            'refund': '退款',
-            'transfer': '转账',
-            'red_packet': '红包',
-            'other': '其他',
+          _dropdown(tr(context, "交易性质"), _kind, {
+            'payment': tr(context, "消费"),
+            'refund': tr(context, "退款"),
+            'transfer': tr(context, "转账"),
+            'red_packet': tr(context, "红包"),
+            'other': tr(context, "其他"),
           }, (value) => setState(() => _kind = value)),
           const SizedBox(height: 10),
-          _dropdown('收支方向', _direction, const {
-            'expense': '支出',
-            'income': '收入',
+          _dropdown(tr(context, "收支方向"), _direction, {
+            'expense': tr(context, "支出"),
+            'income': tr(context, "收入"),
           }, (value) => setState(() => _direction = value)),
           const SizedBox(height: 22),
-          Text('自动处理', style: Theme.of(context).textTheme.titleMedium),
+          Text(tr(context, "自动处理"), style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 10),
           TextField(
             controller: _category,
-            decoration: const InputDecoration(
-              labelText: '设为分类',
+            decoration: InputDecoration(
+              labelText: tr(context, "设为分类"),
               border: OutlineInputBorder(),
             ),
           ),
           const SizedBox(height: 10),
           TextField(
             controller: _tags,
-            decoration: const InputDecoration(
-              labelText: '添加标签（逗号分隔）',
+            decoration: InputDecoration(
+              labelText: tr(context, "添加标签（逗号分隔）"),
               border: OutlineInputBorder(),
             ),
           ),
           const SizedBox(height: 10),
           DropdownButtonFormField<String>(
             initialValue: _exclusion,
-            decoration: const InputDecoration(
-              labelText: '统计处理',
+            decoration: InputDecoration(
+              labelText: tr(context, "统计处理"),
               border: OutlineInputBorder(),
             ),
-            items: const [
-              DropdownMenuItem(value: 'unchanged', child: Text('不更改')),
-              DropdownMenuItem(value: 'exclude', child: Text('排除统计')),
-              DropdownMenuItem(value: 'include', child: Text('计入统计')),
+            items: [
+              DropdownMenuItem(value: 'unchanged', child: Text(tr(context, "不更改"))),
+              DropdownMenuItem(value: 'exclude', child: Text(tr(context, "排除统计"))),
+              DropdownMenuItem(value: 'include', child: Text(tr(context, "计入统计"))),
             ],
             onChanged: (value) =>
                 setState(() => _exclusion = value ?? 'unchanged'),
@@ -301,10 +302,10 @@ class _NewRulePageState extends State<NewRulePage> {
           const SizedBox(height: 22),
           FilledButton(
             onPressed: _busy ? null : _save,
-            child: Text(_busy ? '保存中…' : '保存规则'),
+            child: Text(_busy ? tr(context, "保存中…") : tr(context, "保存规则")),
           ),
           const SizedBox(height: 10),
-          const Text('条件同时满足才会触发。规则仅用于未来导入的账单，已手动修改的记录不会被覆盖。'),
+          Text(tr(context, "条件同时满足才会触发。规则仅用于未来导入的账单，已手动修改的记录不会被覆盖。")),
         ],
       ),
     );
@@ -323,7 +324,7 @@ class _NewRulePageState extends State<NewRulePage> {
         border: const OutlineInputBorder(),
       ),
       items: [
-        const DropdownMenuItem<String>(value: null, child: Text('任何')),
+        DropdownMenuItem<String>(value: null, child: Text(tr(context, "任何"))),
         for (final option in options.entries)
           DropdownMenuItem(value: option.key, child: Text(option.value)),
       ],

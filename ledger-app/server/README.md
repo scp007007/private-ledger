@@ -8,6 +8,8 @@
 
 双击项目 `outputs/start-ledger-server.cmd` 打开电脑端窗口，默认选取局域网网卡，点击“启动服务”。等到“服务就绪”，点击“复制地址”填到手机，先做免令牌网络检查，再点击“复制连接令牌”完成手机连接。最小化窗口可继续同步；关闭窗口会询问是否停止服务。
 
+窗口右上角可切换简体中文和英文，选择会保存在当前 Windows 用户的本机设置中。
+
 窗口复用已有 Python 虚拟环境，并将固定访问令牌通过 Windows DPAPI 加密保存在 `%LOCALAPPDATA%\PrivateLedger\api-token.dpapi`。首次可在输入框中填原令牌，留空才生成；以后复用。主账本默认复用同目录的 `ledger.sqlite3`；自定义 `LEDGER_DB_PATH` 须继续在启动环境中设置。
 
 “检查连接”可查看本机服务状态及 Windows 网络类别；`outputs/check-ledger-connection.cmd` 提供更详细的不带令牌的只读诊断。详情见[连接排查与隐私说明](../CONNECTION-PRIVACY.md)。窗口不修改防火墙、不配置公网访问或开机启动。首次缺少虚拟环境时，先按下面步骤安装依赖；源码包用户可执行 `powershell -NoProfile -STA -ExecutionPolicy Bypass -File .\ledger-desktop.ps1` 打开窗口。原 `start-ledger-server.ps1` 保留命令行模式。

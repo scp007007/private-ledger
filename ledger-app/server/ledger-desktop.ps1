@@ -1,6 +1,10 @@
 ﻿#requires -Version 5.1
 [CmdletBinding()]
-param([switch]$SmokeTest, [string]$ScreenshotPath, [switch]$IntegrationTest, [string]$TestDataDirectory)
+param(
+    [switch]$SmokeTest, [string]$ScreenshotPath,
+    [switch]$IntegrationTest, [string]$TestDataDirectory,
+    [ValidateSet('zh', 'en')][string]$Language
+)
 
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Windows.Forms
@@ -25,8 +29,21 @@ $script:ledgerErrors = $null
 $script:ledgerReady = $false
 $script:ledgerStopping = $false
 
+. (Join-Path $PSScriptRoot 'desktop-language.ps1')
+$languagePath = Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'PrivateLedger\language.txt'
+$script:ledgerLanguage = 'zh'
+if ($Language) {
+    $script:ledgerLanguage = $Language
+} elseif (-not $SmokeTest -and (Test-Path -LiteralPath $languagePath)) {
+    try {
+        if ((Get-Content -LiteralPath $languagePath -Raw).Trim() -eq 'en') {
+            $script:ledgerLanguage = 'en'
+        }
+    } catch {}
+}
+
 $form = New-Object System.Windows.Forms.Form
-$form.Text = '私有账本 · 电脑端'
+Set-LedgerText $form '私有账本 · 电脑端'
 $form.Size = New-Object System.Drawing.Size(760, 780)
 $form.MinimumSize = $form.Size
 $form.StartPosition = 'CenterScreen'
@@ -36,22 +53,46 @@ $form.AutoScroll = $true
 
 function Add-LedgerLabel($Text, $X, $Y, $Width, $Height) {
     $label = New-Object System.Windows.Forms.Label
-    $label.Text = $Text
+    Set-LedgerText $label $Text
     $label.SetBounds($X, $Y, $Width, $Height)
     $form.Controls.Add($label)
     return $label
 }
 function Add-LedgerButton($Text, $X, $Y, $Width, $Handler) {
     $button = New-Object System.Windows.Forms.Button
-    $button.Text = $Text
+    Set-LedgerText $button $Text
     $button.SetBounds($X, $Y, $Width, 40)
     $button.Add_Click($Handler)
     $form.Controls.Add($button)
     return $button
 }
 
-$heading = Add-LedgerLabel '让手机连接你的账本' 28 24 660 38
+$heading = Add-LedgerLabel '让手机连接你的账本' 28 24 505 38
 $heading.Font = New-Object System.Drawing.Font('Microsoft YaHei UI', 18, [System.Drawing.FontStyle]::Bold)
+$languagePicker = New-Object System.Windows.Forms.ComboBox
+$languagePicker.AccessibleName = 'Language / 语言'
+$languagePicker.DropDownStyle = 'DropDownList'
+$languagePicker.SetBounds(540, 26, 158, 32)
+[void]$languagePicker.Items.Add('简体中文')
+[void]$languagePicker.Items.Add('English')
+$languagePicker.SelectedIndex = if ($script:ledgerLanguage -eq 'en') { 1 } else { 0 }
+$form.Controls.Add($languagePicker)
+$languagePicker.Add_SelectedIndexChanged({
+    $script:ledgerLanguage = if ($languagePicker.SelectedIndex -eq 1) { 'en' } else { 'zh' }
+    foreach ($control in @($form) + @($form.Controls)) {
+        if ($control.Tag -is [string]) {
+            $control.Text = Get-LedgerText $control.Tag
+        }
+    }
+    if (-not $SmokeTest) {
+        try {
+            [void][System.IO.Directory]::CreateDirectory((Split-Path -Parent $languagePath))
+            Set-Content -LiteralPath $languagePath -Value $script:ledgerLanguage -Encoding ASCII
+        } catch {
+            [void][System.Windows.Forms.MessageBox]::Show((Get-LedgerText '无法保存界面语言。'))
+        }
+    }
+})
 $null = Add-LedgerLabel '启动服务 → 手机填写当前地址 → 复制令牌完成同步' 28 72 670 28
 $status = Add-LedgerLabel '尚未启动' 28 115 670 36
 $status.Font = New-Object System.Drawing.Font('Microsoft YaHei UI', 14, [System.Drawing.FontStyle]::Bold)
@@ -68,7 +109,7 @@ if ($adapters.Items.Count -gt 0) { $adapters.SelectedIndex = 0 }
 $urlBox = New-Object System.Windows.Forms.TextBox
 $urlBox.SetBounds(28, 250, 480, 32)
 $urlBox.ReadOnly = $true
-$urlBox.Text = '启动后显示手机应填的地址'
+Set-LedgerText $urlBox ('启动后显示手机应填的地址')
 $form.Controls.Add($urlBox)
 $copyUrl = Add-LedgerButton '复制地址' 520 246 178 {
     if ($script:ledgerReady) { [System.Windows.Forms.Clipboard]::SetText($urlBox.Text) }
@@ -82,7 +123,7 @@ $form.Controls.Add($tokenInput)
 $copyToken = Add-LedgerButton '复制连接令牌' 520 332 178 {
     if ($script:ledgerReady -and $script:ledgerToken) {
         [System.Windows.Forms.Clipboard]::SetText($script:ledgerToken)
-        $detail.Text = '已复制令牌，请仅粘贴到你自己的手机应用中；不要发给他人。'
+        Set-LedgerText $detail ('已复制令牌，请仅粘贴到你自己的手机应用中；不要发给他人。')
     }
 }
 $copyToken.Enabled = $false
@@ -91,7 +132,7 @@ $help = Add-LedgerLabel ("手机仍连接不上？`r`n1. 手机先点《检查�
 $null = Add-LedgerLabel '数据保存在本机，令牌加密保存。HTTP 在局域网内仍是明文；外出同步请配置加密 VPN 或 HTTPS。' 28 667 670 48
 
 function Set-LedgerStopped([string]$Message) {
-    $status.Text = $Message
+    Set-LedgerText $status ($Message)
     $script:ledgerReady = $false
     $script:ledgerStopping = $false
     $copyUrl.Enabled = $false
@@ -143,9 +184,9 @@ $start = Add-LedgerButton '启动服务' 28 387 210 {
         $script:ledgerOutput = $script:ledgerProcess.StandardOutput.ReadToEndAsync()
         $script:ledgerErrors = $script:ledgerProcess.StandardError.ReadToEndAsync()
         $script:ledgerStartedAt = [DateTime]::UtcNow
-        $urlBox.Text = 'http://' + $script:ledgerAddress + ':8000'
-        $status.Text = '正在启动并检查服务…'
-        $detail.Text = '等待服务响应。只有健康检查通过后，才会显示《服务就绪》。'
+        Set-LedgerText $urlBox ('http://' + $script:ledgerAddress + ':8000')
+        Set-LedgerText $status ('正在启动并检查服务…')
+        Set-LedgerText $detail ('等待服务响应。只有健康检查通过后，才会显示《服务就绪》。')
         $start.Enabled = $false
         $stop.Enabled = $true
         $adapters.Enabled = $false
@@ -155,7 +196,7 @@ $start = Add-LedgerButton '启动服务' 28 387 210 {
         $message = '启动失败，请检查 Python 依赖、网络与账本路径。'
         if ($_.Exception.Data['LedgerSafeMessage']) { $message = $_.Exception.Message }
         Set-LedgerStopped '启动失败'
-        $detail.Text = $message
+        Set-LedgerText $detail ($message)
     }
 }
 $start.BackColor = [System.Drawing.ColorTranslator]::FromHtml('#DBE8FF')
@@ -167,7 +208,7 @@ $stop = Add-LedgerButton '停止服务' 252 387 210 {
         $copyUrl.Enabled = $false
         $copyToken.Enabled = $false
         $stop.Enabled = $false
-        $status.Text = '正在安全停止…'
+        Set-LedgerText $status ('正在安全停止…')
     }
 }
 $stop.Enabled = $false
@@ -183,10 +224,10 @@ $diagnose = Add-LedgerButton '检查连接' 476 387 222 {
         }
     } catch {}
     $localState = if ($script:ledgerReady) { '本机健康检查通过' } else { '本机服务未就绪，先启动服务' }
-    $detail.Text = $localState + '。Windows：' + $networkCategory + '。手机仍需点《检查网络》确认跨设备连通。'
+    Set-LedgerText $detail ($localState + '。Windows：' + $networkCategory + '。手机仍需点《检查网络》确认跨设备连通。')
 }
 if ($candidates.Count -gt 0 -and $candidates[0].Description -match 'RNDIS|Internet Sharing') {
-    $help.Text = '当前使用 USB 网络共享，先确认手机与此电脑地址能够互通。' + "`r`n" + $help.Text
+    Set-LedgerText $help ($script:ledgerUsbZh + "`r`n" + $script:ledgerHelpZh)
 }
 
 $timer = New-Object System.Windows.Forms.Timer
@@ -198,17 +239,17 @@ $timer.Add_Tick({
         Set-LedgerStopped $(if ($wasStopping) { '服务已停止' } else { '服务启动失败或已退出' })
         if (-not $wasStopping) {
             # Do not display raw stderr: it can include paths or bill values.
-            $detail.Text = '检查 Python 依赖、8000 端口占用、账本路径和文件权限；可按 server/README.md 手动启动定位。'
+            Set-LedgerText $detail ('检查 Python 依赖、8000 端口占用、账本路径和文件权限；可按 server/README.md 手动启动定位。')
             if ($script:ledgerErrors -and $script:ledgerErrors.IsCompleted) {
                 $safeClassify = $script:ledgerErrors.Result
                 if ($safeClassify -match 'No module named|ModuleNotFoundError') {
-                    $detail.Text = 'Python 运行依赖缺失，请先按 server/README.md 安装 requirements.txt，再启动服务。'
+                    Set-LedgerText $detail ('Python 运行依赖缺失，请先按 server/README.md 安装 requirements.txt，再启动服务。')
                 } elseif ($safeClassify -match '10048|address already in use') {
-                    $detail.Text = '8000 端口已被占用，请停止旧服务后重试；不要关闭不明进程。'
+                    Set-LedgerText $detail ('8000 端口已被占用，请停止旧服务后重试；不要关闭不明进程。')
                 } elseif ($safeClassify -match '10049|cannot assign requested address') {
-                    $detail.Text = '电脑 IP 已改变或网卡已断开，请重新打开电脑端，选择当前地址。'
+                    Set-LedgerText $detail ('电脑 IP 已改变或网卡已断开，请重新打开电脑端，选择当前地址。')
                 } elseif ($safeClassify -match 'PermissionError|unable to open database|readonly database') {
-                    $detail.Text = '账本路径无法读写，请检查数据库目录权限和磁盘可用空间。'
+                    Set-LedgerText $detail ('账本路径无法读写，请检查数据库目录权限和磁盘可用空间。')
                 }
             }
         }
@@ -234,8 +275,8 @@ $timer.Add_Tick({
         $health = (-join $buffer[0..($count - 1)]) | ConvertFrom-Json
         if ($health.status -ne 'ok' -or $health.service -ne 'private-ledger') { throw 'Wrong service' }
         if (-not $script:ledgerReady) {
-            $status.Text = '服务就绪 · 等待手机连接'
-            $detail.Text = '① 复制当前地址到手机  ② 手机点《检查网络》  ③ 复制令牌并连接。若手机仍不通，请按下方步骤排查。'
+            Set-LedgerText $status ('服务就绪 · 等待手机连接')
+            Set-LedgerText $detail ('① 复制当前地址到手机  ② 手机点《检查网络》  ③ 复制令牌并连接。若手机仍不通，请按下方步骤排查。')
         }
         $script:ledgerReady = $true
         $copyUrl.Enabled = $true
@@ -245,8 +286,8 @@ $timer.Add_Tick({
         $copyUrl.Enabled = $false
         $copyToken.Enabled = $false
         if (([DateTime]::UtcNow - $script:ledgerStartedAt).TotalSeconds -gt 15) {
-            $status.Text = '进程仍运行，但健康检查未通过'
-            $detail.Text = '请停止服务后核对网卡地址；如果刚切换了网络，请重新打开电脑端刷新地址。'
+            Set-LedgerText $status ('进程仍运行，但健康检查未通过')
+            Set-LedgerText $detail ('请停止服务后核对网卡地址；如果刚切换了网络，请重新打开电脑端刷新地址。')
         }
     } finally {
         if ($reader) { $reader.Dispose() }
@@ -256,13 +297,13 @@ $timer.Add_Tick({
 $form.Add_FormClosing({
     param($sender, $eventArgs)
     if ($script:ledgerProcess -and -not $script:ledgerProcess.HasExited) {
-        $answer = [System.Windows.Forms.MessageBox]::Show('关闭电脑端会停止账本同步服务。要继续在后台同步，请取消并最小化窗口。现在停止并退出吗？', '停止账本服务', 'YesNo', 'Question')
+        $answer = [System.Windows.Forms.MessageBox]::Show((Get-LedgerText '关闭电脑端会停止账本同步服务。要继续在后台同步，请取消并最小化窗口。现在停止并退出吗？'), (Get-LedgerText '停止账本服务'), 'YesNo', 'Question')
         if ($answer -ne 'Yes') { $eventArgs.Cancel = $true; return }
         $script:ledgerProcess.StandardInput.Close()
         if (-not $script:ledgerProcess.WaitForExit(12000)) {
             $eventArgs.Cancel = $true
             $script:ledgerStopping = $true
-            $status.Text = '正在等待服务完成当前请求，请稍后关闭'
+            Set-LedgerText $status ('正在等待服务完成当前请求，请稍后关闭')
             return
         }
     }
@@ -272,6 +313,16 @@ $form.Add_FormClosing({
 if ($SmokeTest) {
     $form.Show()
     [System.Windows.Forms.Application]::DoEvents()
+    $initialLanguage = $languagePicker.SelectedIndex
+    $languagePicker.SelectedIndex = 1
+    if ($start.Text -ne 'Start service' -or $status.Text -ne 'Service stopped') {
+        throw 'Desktop English language switch did not update controls.'
+    }
+    $languagePicker.SelectedIndex = 0
+    if ($start.Text -ne '启动服务' -or $status.Text -ne '尚未启动') {
+        throw 'Desktop Chinese language switch did not update controls.'
+    }
+    $languagePicker.SelectedIndex = $initialLanguage
     if ($IntegrationTest) {
         $timer.Start()
         try {

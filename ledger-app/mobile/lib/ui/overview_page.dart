@@ -1,3 +1,4 @@
+import '../l10n/ledger_l10n.dart';
 import 'package:flutter/material.dart';
 
 import '../ledger_controller.dart';
@@ -15,11 +16,11 @@ class OverviewPage extends StatelessWidget {
     final theme = Theme.of(context);
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       Row(children: [
-        Expanded(child: Text('最近流水', style: theme.textTheme.titleMedium)),
-        TextButton(onPressed: onTransactions, child: const Text('查看全部 ›')),
+        Expanded(child: Text(tr(context, "最近流水"), style: theme.textTheme.titleMedium)),
+        TextButton(onPressed: onTransactions, child: Text(tr(context, "查看全部 ›"))),
       ]),
       if (recent.isEmpty) Card(child: Padding(padding: const EdgeInsets.all(20),
-        child: Text('这个月还没有流水', style: theme.textTheme.bodySmall))),
+        child: Text(tr(context, "这个月还没有流水"), style: theme.textTheme.bodySmall))),
       if (recent.isNotEmpty) Card(child: Column(children: [
         for (var i = 0; i < recent.length; i++) ...[
           if (i > 0) const Divider(height: 1, indent: 62, endIndent: 16),
@@ -38,16 +39,16 @@ class OverviewPage extends StatelessWidget {
         child: Icon(Icons.account_balance_wallet_outlined,
           size: 32, color: theme.colorScheme.primary)),
       const SizedBox(height: 20),
-      Text('从第一份账单开始',
+      Text(tr(context, "从第一份账单开始"),
         textAlign: TextAlign.center, style: theme.textTheme.titleLarge),
       const SizedBox(height: 10),
-      Text('导入支付宝或微信账单\n看看每一笔钱花在哪里',
+      Text(tr(context, "导入支付宝或微信账单\n看看每一笔钱花在哪里"),
         textAlign: TextAlign.center, style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
       const SizedBox(height: 22),
       SizedBox(width: double.infinity, child: FilledButton.icon(
         onPressed: onImport,
         icon: const Icon(Icons.file_upload_outlined),
-        label: const Text('导入账单'))),
+        label: Text(tr(context, "导入账单")))),
     ])));
   }
 
@@ -98,7 +99,9 @@ void openCategoryTransactions(BuildContext context, LedgerController controller,
   final year = controller.reportYear;
   final month = controller.reportMonth;
   Navigator.of(context).push(MaterialPageRoute<void>(builder: (context) => Scaffold(
-    appBar: AppBar(title: Text('$category · $year年${yearly ? '' : '$month月'}')),
+    appBar: AppBar(title: Text(isEnglish(context)
+      ? '${reportCategoryLabel(context, category)} · $year${yearly ? '' : '/$month'}'
+      : '$category · $year年${yearly ? '' : '$month月'}')),
     body: SafeArea(child: Center(child: ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 720),
       child: TransactionsPage(controller: controller, category: category,

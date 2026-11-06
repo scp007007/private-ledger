@@ -6,6 +6,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ledger_mobile/data/local_store.dart';
+import 'package:ledger_mobile/l10n/ledger_l10n.dart';
 import 'package:ledger_mobile/ledger_controller.dart';
 import 'package:ledger_mobile/main.dart';
 import 'package:ledger_mobile/model/ledger_transaction.dart';
@@ -85,6 +86,49 @@ Future<void> _screenshot(WidgetTester tester, GlobalKey boundary, String name) a
 }
 
 void main() {
+  testWidgets('English can be selected before connecting and stored on device', (tester) async {
+    tester.view.physicalSize = const Size(320, 880);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final store = _PreviewStore();
+    final controller = LedgerController.forTesting(store: store);
+    addTearDown(controller.dispose);
+    await tester.pumpWidget(LedgerApp(controller: controller));
+    expect(find.text('连接你的私有账本'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('ledger-language')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('English').last);
+    await tester.pumpAndSettle();
+    expect(store.metadata['language'], 'en');
+    expect(find.text('Connect your private ledger'), findsOneWidget);
+    expect(find.text('连接你的私有账本'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('English dashboard keeps imported categories and opens reports', (tester) async {
+    tester.view.physicalSize = const Size(320, 880);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final controller = _controller(_PreviewStore());
+    addTearDown(controller.dispose);
+    await tester.pumpWidget(MaterialApp(
+      locale: const Locale('en'),
+      localizationsDelegates: const [LedgerLanguage.delegate],
+      theme: ledgerTheme(Brightness.light),
+      home: HomeScreen(controller: controller),
+    ));
+    await tester.pumpAndSettle();
+    expect(find.text('Private Ledger'), findsOneWidget);
+    expect(find.text('Net spending this month'), findsOneWidget);
+    expect(find.text('餐饮'), findsWidgets);
+    await tester.tap(find.byKey(const ValueKey('nav-2')));
+    await tester.pumpAndSettle();
+    expect(find.text('Monthly'), findsOneWidget);
+    expect(find.text('Yearly'), findsOneWidget);
+  });
+
   testWidgets('transaction row swipes work with keyboard open in both directions', (tester) async {
     tester.view.physicalSize = const Size(390, 880);
     tester.view.devicePixelRatio = 1;

@@ -13,12 +13,19 @@ Private Ledger is a self-hosted personal finance app. A Windows computer runs th
 
 ## Install and connect
 
-1. Download `private-ledger-0.4.1-full.zip` from the [v0.4.1 release](https://github.com/scp007007/private-ledger/releases/tag/v0.4.1) and extract the full archive. Use the `arm64-v8a` APK on most Android phones and the `x86_64` APK on emulators using an x86_64 image.
+1. Download `private-ledger-0.4.2-full.zip` from the [v0.4.2 release](https://github.com/scp007007/private-ledger/releases/tag/v0.4.2) and extract the full archive. Use the `arm64-v8a` APK on most Android phones and the `x86_64` APK on emulators using an x86_64 image.
 2. Install Python 3.12 on Windows. For the first run, open `setup-ledger-server.cmd` from the extracted folder to install the dependencies. This step requires internet access.
 3. Open `start-ledger-server.cmd` and start the service. When the status indicates that the service is ready, copy the address and connection token shown in the desktop window.
 4. Connect the phone and computer to the same trusted local network or use an existing private VPN. Enter the server's base address in the app, run the network check, then enter the token and connect.
 
-To upgrade, install the new APK over the existing app signed with the same key. This preserves the local ledger and pending edits. The 0.4.1 mobile app works with the existing 0.4.0 desktop service. Release APKs use the project's internal test signing key. A locally built APK signed with a different key cannot replace an existing install.
+To upgrade, install the new APK over the existing app signed with the same key. This preserves the local ledger and pending edits. Release APKs use the project's internal test signing key. A locally built APK signed with a different key cannot replace an existing install.
+
+### Display language
+
+- **Android:** Choose Simplified Chinese or English on the connection screen. After connecting, find the same control under **Settings → Appearance**.
+- **Windows:** Use the language selector in the upper right of the sync window. The choice is saved for the current Windows user.
+
+Each device stores its language preference separately. Merchants, categories, tags, and notes retain their original text.
 
 ## Everyday use
 

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
+import 'l10n/ledger_l10n.dart';
 import 'ledger_controller.dart';
 import 'ui/app_theme.dart';
 import 'ui/connection_screen.dart';
@@ -23,22 +25,29 @@ class _LedgerAppState extends State<LedgerApp> {
   static final _darkTheme = ledgerTheme(Brightness.dark);
   late bool _configured;
   late String _appearance;
+  late String _language;
 
   @override
   void initState() {
     super.initState();
     _configured = widget.controller.configured;
     _appearance = widget.controller.appearance;
+    _language = widget.controller.language;
     widget.controller.addListener(_onAppSettings);
   }
 
   void _onAppSettings() {
     final controller = widget.controller;
     // Sync events update the pages; rebuilding the entire app is unnecessary.
-    if (_configured == controller.configured && _appearance == controller.appearance) return;
+    if (_configured == controller.configured &&
+        _appearance == controller.appearance &&
+        _language == controller.language) {
+      return;
+    }
     setState(() {
       _configured = controller.configured;
       _appearance = controller.appearance;
+      _language = controller.language;
     });
   }
 
@@ -50,6 +59,7 @@ class _LedgerAppState extends State<LedgerApp> {
       widget.controller.addListener(_onAppSettings);
       _configured = widget.controller.configured;
       _appearance = widget.controller.appearance;
+      _language = widget.controller.language;
     }
   }
 
@@ -61,7 +71,14 @@ class _LedgerAppState extends State<LedgerApp> {
 
   @override
   Widget build(BuildContext context) => MaterialApp(
-    title: '私有账本', debugShowCheckedModeBanner: false,
+    onGenerateTitle: (context) => tr(context, '私有账本'),
+    debugShowCheckedModeBanner: false,
+    locale: Locale(_language),
+    supportedLocales: LedgerLanguage.locales,
+    localizationsDelegates: const [
+      LedgerLanguage.delegate,
+      ...GlobalMaterialLocalizations.delegates,
+    ],
     theme: _lightTheme, darkTheme: _darkTheme,
     themeMode: switch (_appearance) {
       'dark' => ThemeMode.dark,

@@ -1,3 +1,4 @@
+import '../l10n/ledger_l10n.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
@@ -26,14 +27,14 @@ class _ReportsPageState extends State<ReportsPage> {
 
   Future<void> _export() async {
     final options = await showDialog<(bool, bool)>(context: context, builder: (context) => AlertDialog(
-      title: const Text('导出账单 CSV'),
-      content: const SingleChildScrollView(child: Text('选择月份或全年，以及完整或脱敏数据。脱敏版隐藏商家、描述、交易号、标签和备注，将分类改为别名，并更换记录标识。日期和金额仍保留，分享前请自行检查。此功能需要更新电脑端服务。\n\nCSV 按交易发生时间导出流水；跨月退款可能位于另一份文件，不能直接相加得到这里的实际消费。脱敏记录标识和分类别名仅在本次文件内有效，不能用于关联多次导出。')),
+      title: Text(tr(context, "导出账单 CSV")),
+      content: SingleChildScrollView(child: Text(tr(context, "选择月份或全年，以及完整或脱敏数据。脱敏版隐藏商家、描述、交易号、标签和备注，将分类改为别名，并更换记录标识。日期和金额仍保留，分享前请自行检查。此功能需要更新电脑端服务。\n\nCSV 按交易发生时间导出流水；跨月退款可能位于另一份文件，不能直接相加得到这里的实际消费。脱敏记录标识和分类别名仅在本次文件内有效，不能用于关联多次导出。"))),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('取消')),
-        TextButton(onPressed: () => Navigator.pop(context, (false, false)), child: const Text('本月完整')),
-        TextButton(onPressed: () => Navigator.pop(context, (false, true)), child: const Text('本年完整')),
-        TextButton(onPressed: () => Navigator.pop(context, (true, false)), child: const Text('本月脱敏')),
-        FilledButton(onPressed: () => Navigator.pop(context, (true, true)), child: const Text('本年脱敏')),
+        TextButton(onPressed: () => Navigator.pop(context), child: Text(tr(context, "取消"))),
+        TextButton(onPressed: () => Navigator.pop(context, (false, false)), child: Text(tr(context, "本月完整"))),
+        TextButton(onPressed: () => Navigator.pop(context, (false, true)), child: Text(tr(context, "本年完整"))),
+        TextButton(onPressed: () => Navigator.pop(context, (true, false)), child: Text(tr(context, "本月脱敏"))),
+        FilledButton(onPressed: () => Navigator.pop(context, (true, true)), child: Text(tr(context, "本年脱敏"))),
       ],
     ));
     if (options == null || !mounted) return;
@@ -47,12 +48,13 @@ class _ReportsPageState extends State<ReportsPage> {
         fileName: 'ledger_$year${wholeYear ? '' : '_${month.toString().padLeft(2, '0')}'}${redact ? '_redacted' : ''}.csv',
         bytes: bytes, mimeType: 'text/csv', type: FileType.custom, allowedExtensions: ['csv'],
       );
-      if (mounted && saved != null) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('CSV 已保存到所选位置。')));
+      if (mounted && saved != null) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr(context, "CSV 已保存到所选位置。"))));
     } catch (error) {
+      if (!mounted) return;
       final message = error is ApiException
           ? error.message
-          : '无法导出文件，请检查服务器连接、保存位置和文件访问权限后重试。';
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('导出失败：$message')));
+          : tr(context, "无法导出文件，请检查服务器连接、保存位置和文件访问权限后重试。");
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr(context, "导出失败：{0}", [localizedProblem(context, message)]))));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -69,12 +71,12 @@ class _ReportsPageState extends State<ReportsPage> {
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(20, 10, 20, 28),
       children: [
-        SegmentedButton<bool>(showSelectedIcon: false, segments: const [ButtonSegment(value: false, label: Text('月度')), ButtonSegment(value: true, label: Text('年度'))], selected: {_yearly}, onSelectionChanged: (value) => setState(() => _yearly = value.single)),
+        SegmentedButton<bool>(showSelectedIcon: false, segments: [ButtonSegment(value: false, label: Text(tr(context, "月度"))), ButtonSegment(value: true, label: Text(tr(context, "年度")))], selected: {_yearly}, onSelectionChanged: (value) => setState(() => _yearly = value.single)),
         const SizedBox(height: 10),
         if (!_yearly) MonthSelector(year: controller.reportYear, month: controller.reportMonth, onChange: _changeMonth)
-        else Row(children: [Expanded(child: Text('${controller.reportYear}年', style: theme.textTheme.titleMedium?.copyWith(fontSize: 17, fontWeight: FontWeight.w600))), IconButton(tooltip: '上一年', onPressed: controller.reportYear <= 1 ? null : () => _changeMonth(DateTime(controller.reportYear - 1, controller.reportMonth)), icon: const Icon(Icons.chevron_left)), IconButton(tooltip: '下一年', onPressed: controller.reportYear >= 9999 ? null : () => _changeMonth(DateTime(controller.reportYear + 1, controller.reportMonth)), icon: const Icon(Icons.chevron_right))]),
+        else Row(children: [Expanded(child: Text(tr(context, "{0}年", [controller.reportYear]), style: theme.textTheme.titleMedium?.copyWith(fontSize: 17, fontWeight: FontWeight.w600))), IconButton(tooltip: tr(context, "上一年"), onPressed: controller.reportYear <= 1 ? null : () => _changeMonth(DateTime(controller.reportYear - 1, controller.reportMonth)), icon: const Icon(Icons.chevron_left)), IconButton(tooltip: tr(context, "下一年"), onPressed: controller.reportYear >= 9999 ? null : () => _changeMonth(DateTime(controller.reportYear + 1, controller.reportMonth)), icon: const Icon(Icons.chevron_right))]),
         ReportStatus(controller: controller),
-        if (report == null) const Card(child: Padding(padding: EdgeInsets.all(24), child: Text('这个期间还没有本机流水。')))
+        if (report == null) Card(child: Padding(padding: EdgeInsets.all(24), child: Text(tr(context, "这个期间还没有本机流水。"))))
         else ...[
           ConsumptionSummary(report: report, yearly: _yearly),
           RefundNotice(report: report),
@@ -84,11 +86,11 @@ class _ReportsPageState extends State<ReportsPage> {
         if (report != null) ...[
           const SizedBox(height: 16),
           Card(child: Padding(padding: const EdgeInsets.all(18), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(_yearly ? '全年分类排行' : '本月分类排行', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+            Text(_yearly ? tr(context, "全年分类排行") : tr(context, "本月分类排行"), style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
             const SizedBox(height: 10),
-            if (categories.isEmpty) const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Text('暂无计入统计的消费')),
+            if (categories.isEmpty) Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Text(tr(context, "暂无计入统计的消费"))),
             for (final category in categories) InkWell(onTap: () => openCategoryTransactions(context, controller, category.name, yearly: _yearly), borderRadius: BorderRadius.circular(12), child: Padding(padding: const EdgeInsets.symmetric(vertical: 11), child: Column(children: [
-              Row(children: [Expanded(child: Text(category.name, style: theme.textTheme.bodyMedium)), const SizedBox(width: 8), Expanded(child: Text(formatMoney(category.cents), textAlign: TextAlign.end, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500)))]),
+              Row(children: [Expanded(child: Text(reportCategoryLabel(context, category.name), style: theme.textTheme.bodyMedium)), const SizedBox(width: 8), Expanded(child: Text(formatMoney(category.cents), textAlign: TextAlign.end, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500)))]),
               const SizedBox(height: 6),
               Row(children: [Expanded(child: TweenAnimationBuilder<double>(
                 key: ValueKey('rank-${controller.reportYear}-${_yearly ? 'year' : controller.reportMonth}-${category.name}'),
@@ -101,11 +103,11 @@ class _ReportsPageState extends State<ReportsPage> {
           ]))),
         ],
         const SizedBox(height: 20),
-        FilledButton.icon(onPressed: controller.configured && !controller.syncing ? controller.syncNow : null, icon: const Icon(Icons.sync), label: Text(controller.syncing ? '正在同步账单…' : '同步账单')),
+        FilledButton.icon(onPressed: controller.configured && !controller.syncing ? controller.syncNow : null, icon: const Icon(Icons.sync), label: Text(controller.syncing ? tr(context, "正在同步账单…") : tr(context, "同步账单"))),
         const SizedBox(height: 10),
-        OutlinedButton.icon(onPressed: _busy ? null : _export, icon: const Icon(Icons.file_download_outlined), label: const Text('导出月度或年度 CSV')),
+        OutlinedButton.icon(onPressed: _busy ? null : _export, icon: const Icon(Icons.file_download_outlined), label: Text(tr(context, "导出月度或年度 CSV"))),
         const SizedBox(height: 12),
-        Text('退款抵扣原消费月份。流水保存后立即更新统计。', style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+        Text(tr(context, "退款抵扣原消费月份。流水保存后立即更新统计。"), style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
       ],
     ));
   });
@@ -135,8 +137,8 @@ class _MonthlyTrendState extends State<MonthlyTrend> {
     final shown = months.where((m) => _secondHalf ? (m['month'] as int) > 6 : (m['month'] as int) <= 6).toList();
     final max = shown.fold<int>(0, (largest, m) { final amount = reportCents(m, 'total_actual_consumption_cents'); return amount > largest ? amount : largest; });
     return Card(child: Padding(padding: const EdgeInsets.all(18), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Wrap(alignment: WrapAlignment.spaceBetween, crossAxisAlignment: WrapCrossAlignment.center, spacing: 12, children: [Text('月消费走势', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)), DropdownButton<bool>(value: _secondHalf, underline: const SizedBox.shrink(), items: const [DropdownMenuItem(value: false, child: Text('上半年')), DropdownMenuItem(value: true, child: Text('下半年'))], onChanged: (v) => setState(() => _secondHalf = v!))]),
-      Text('${widget.report['year']}年 · ${widget.selectedMonth}月 ${formatMoney(reportCents(selected, 'total_actual_consumption_cents'))}', style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+      Wrap(alignment: WrapAlignment.spaceBetween, crossAxisAlignment: WrapCrossAlignment.center, spacing: 12, children: [Text(tr(context, "月消费走势"), style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)), DropdownButton<bool>(value: _secondHalf, underline: const SizedBox.shrink(), items: [DropdownMenuItem(value: false, child: Text(tr(context, "上半年"))), DropdownMenuItem(value: true, child: Text(tr(context, "下半年")))], onChanged: (v) => setState(() => _secondHalf = v!))]),
+      Text(tr(context, "{0}年 · {1}月 {2}", [widget.report['year'], widget.selectedMonth, formatMoney(reportCents(selected, 'total_actual_consumption_cents'))]), style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
       const SizedBox(height: 16),
       Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
         for (final month in shown) Expanded(child: _TrendColumn(
@@ -167,7 +169,7 @@ class _TrendColumn extends StatelessWidget {
     return Semantics(
       button: true,
       selected: selected,
-      label: '$month月实际消费 ${formatMoney(cents)}，查看月报',
+      label: tr(context, "{0}月实际消费 {1}，查看月报", [month, formatMoney(cents)]),
       child: Tooltip(
         message: formatMoney(cents),
         child: InkWell(
@@ -197,7 +199,7 @@ class _TrendColumn extends StatelessWidget {
                 duration: ledgerMotionDuration(context, milliseconds: 240),
                 padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 5),
                 decoration: BoxDecoration(color: selected ? theme.colorScheme.primaryContainer.withValues(alpha: .6) : Colors.transparent, borderRadius: BorderRadius.circular(8)),
-                child: Text('$month月', textAlign: TextAlign.center, style: theme.textTheme.bodySmall?.copyWith(color: selected ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant, fontWeight: selected ? FontWeight.w600 : FontWeight.w400)),
+                child: Text(tr(context, "{0}月", [month]), textAlign: TextAlign.center, style: theme.textTheme.bodySmall?.copyWith(color: selected ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant, fontWeight: selected ? FontWeight.w600 : FontWeight.w400)),
               ),
             ]),
           ),

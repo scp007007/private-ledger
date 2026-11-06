@@ -1,3 +1,4 @@
+import '../l10n/ledger_l10n.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -53,7 +54,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _openImport() => Navigator.of(context).push(MaterialPageRoute<void>(
     builder: (context) => Scaffold(
-      appBar: AppBar(title: const Text('导入账单')),
+      appBar: AppBar(title: Text(tr(context, "导入账单"))),
       body: SafeArea(child: Center(child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 640),
         child: ImportPage(controller: widget.controller),
@@ -70,7 +71,7 @@ class _HomeScreenState extends State<HomeScreen> {
   };
 
   Widget _navigationItem(int index) => _NavigationItem(
-    key: ValueKey('nav-$index'), label: _labels[index],
+    key: ValueKey('nav-$index'), label: tr(context, _labels[index]),
     icon: _index == index ? _selectedIcons[index] : _icons[index],
     selected: _index == index, onTap: () => _select(index),
   );
@@ -87,7 +88,7 @@ class _HomeScreenState extends State<HomeScreen> {
       return Scaffold(
         floatingActionButton: FloatingActionButton.extended(
           onPressed: () => openNewTransaction(context, controller),
-          icon: const Icon(Icons.add), label: const Text('记一笔'),
+          icon: const Icon(Icons.add), label: Text(tr(context, "记一笔")),
         ),
         appBar: PreferredSize(
           preferredSize: const Size.fromHeight(74),
@@ -96,18 +97,18 @@ class _HomeScreenState extends State<HomeScreen> {
             child: AppBar(
               toolbarHeight: 74, titleSpacing: 20,
               title: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(const ['私有账本', '账单流水', '消费统计', '我的账本'][_index],
+                Text(tr(context, const ['私有账本', '账单流水', '消费统计', '我的账本'][_index]),
                   maxLines: 1, overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
                 if (!largeText) ...[
                   const SizedBox(height: 3),
-                  Text(const ['记录生活里的每一笔', '让每笔收支都有迹可循', '看清消费，安排生活', '账本由自己掌握'][_index],
+                  Text(tr(context, const ['记录生活里的每一笔', '让每笔收支都有迹可循', '看清消费，安排生活', '账本由自己掌握'][_index]),
                     maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.labelSmall),
                 ],
               ]),
               actions: [
                 if (compactActions) IconButton.filledTonal(
-                  tooltip: '导入账单', onPressed: _openImport,
+                  tooltip: tr(context, "导入账单"), onPressed: _openImport,
                   icon: const Icon(Icons.file_upload_outlined, size: 20),
                 ) else TextButton.icon(
                   style: TextButton.styleFrom(backgroundColor: theme.colorScheme.surface,
@@ -115,10 +116,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
                   onPressed: _openImport,
                   icon: const Icon(Icons.file_upload_outlined, size: 17),
-                  label: const Text('导入账单'),
+                  label: Text(tr(context, "导入账单")),
                 ),
                 IconButton(
-                  tooltip: controller.pendingCount > 0 ? '${controller.pendingCount} 项待同步，点击同步' : '立即同步',
+                  tooltip: controller.pendingCount > 0 ? tr(context, "{0} 项待同步，点击同步", [controller.pendingCount]) : tr(context, "立即同步"),
                   onPressed: controller.syncing ? null : () => unawaited(controller.syncNow()),
                   icon: controller.syncing
                       ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
